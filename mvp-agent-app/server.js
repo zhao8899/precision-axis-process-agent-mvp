@@ -24,7 +24,12 @@ loadDotEnv(path.resolve(__dirname, "..", ".env"));
 loadDotEnv(path.resolve(__dirname, ".env"));
 
 const PORT = Number(process.env.PORT || 8080);
-const PACKAGE_DIR = process.env.MVP_PACKAGE_DIR || path.resolve(__dirname, "MVP开发交付包");
+const PACKAGE_DIR_CANDIDATES = [
+  process.env.MVP_PACKAGE_DIR,
+  path.resolve(__dirname, "MVP开发交付包"),
+  path.resolve(__dirname, "..", "MVP开发交付包")
+].filter(Boolean);
+const PACKAGE_DIR = PACKAGE_DIR_CANDIDATES.find((candidate) => fsSync.existsSync(candidate)) || PACKAGE_DIR_CANDIDATES[0];
 const PUBLIC_DIR = path.join(__dirname, "public");
 const RUNTIME_DIR = process.env.RUNTIME_DIR || path.resolve(__dirname, "runtime");
 const MODEL_CONFIG_FILE = path.join(RUNTIME_DIR, "model-config.json");
