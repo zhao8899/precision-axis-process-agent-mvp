@@ -706,6 +706,7 @@ async function renderAdmin() {
 
 async function renderKnowledgeManager() {
   const data = await api("/api/admin/knowledge");
+  state.assets = data.baseAssets || [];
   $("#baseAssetCount").textContent = data.baseAssets.length;
   $("#customAssetCount").textContent = data.customAssets.length;
 
@@ -861,17 +862,6 @@ async function saveRoles() {
   await renderAdmin();
 }
 
-async function renderAssets() {
-  state.assets = await api("/api/assets");
-  $("#assetList").innerHTML = state.assets.map((asset) => `<button data-asset="${asset.id}">${asset.file}</button>`).join("");
-}
-
-async function loadAsset(id) {
-  const asset = await api(`/api/assets/${id}`);
-  $("#assetTitle").textContent = asset.file;
-  $("#assetContent").textContent = asset.content;
-}
-
 async function runTests(useExternalProvider = false) {
   $("#currentRunMode").textContent = useExternalProvider ? "真实测试执行中..." : "本地预检执行中...";
   if (useExternalProvider) {
@@ -976,7 +966,6 @@ async function boot() {
     renderTests();
     renderRecords();
     renderMaterials();
-    await renderAssets();
     await renderKnowledgeManager();
     await loadTestRuns();
     await loadAcceptanceSummary();
@@ -994,9 +983,6 @@ document.addEventListener("click", (event) => {
 
   const jump = event.target.closest("[data-jump]");
   if (jump) setView(jump.dataset.jump);
-
-  const assetButton = event.target.closest("[data-asset]");
-  if (assetButton) loadAsset(assetButton.dataset.asset);
 
   const deleteIncident = event.target.closest("[data-delete-incident]");
   if (deleteIncident) {

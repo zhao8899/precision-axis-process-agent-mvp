@@ -38,8 +38,7 @@
         <button class="nav" data-view="overview">项目边界</button>
         <button class="nav" data-view="rules">G1-G8</button>
         <button class="nav" data-view="tests">T01-T08</button>
-        <button class="nav" data-view="assets">资料库</button>
-        <button class="nav" data-view="knowledge">资料管理</button>
+        <button class="nav" data-view="knowledge">资料库</button>
         <button class="nav" data-view="ask">工艺问答</button>
         <button class="nav" data-view="admin">系统管理</button>
       </nav>
@@ -336,26 +335,12 @@
           <div id="testResults" class="test-results"></div>
         </section>
 
-        <section id="assets" class="view">
-          <div class="panel split">
-            <div>
-              <h2>项目资料库</h2>
-              <p>选手查阅项目基础资料、G1-G8规则、异常处置和验收口径。资料维护请进入“资料管理”。</p>
-              <div id="assetList" class="asset-list"></div>
-            </div>
-            <article class="asset-preview">
-              <h3 id="assetTitle">选择文件</h3>
-              <pre id="assetContent"></pre>
-            </article>
-          </div>
-        </section>
-
         <section id="knowledge" class="view">
           <div class="field-hero">
             <div>
-              <p class="eyebrow">资料维护</p>
-              <h2>资料库管理</h2>
-              <p>维护比赛项目资料、训练补充资料和现场规则口径。基础资料来自项目资料包，自定义资料会进入智能体问答上下文。</p>
+              <p class="eyebrow">资料库</p>
+              <h2>资料查阅与管理</h2>
+              <p>统一查阅项目基础资料、G1-G8规则、异常处置、验收口径，并维护训练补充资料。基础资料只读，自定义资料进入智能体问答上下文。</p>
             </div>
             <div class="hero-metrics">
               <div><strong id="baseAssetCount">0</strong><span>基础资料</span></div>
@@ -368,7 +353,7 @@
               <div class="section-head">
                 <div>
                   <h2>资料目录</h2>
-                  <p>基础资料只读；自定义资料可编辑、删除。</p>
+                  <p>基础资料用于查阅和导入核对；自定义资料可编辑、删除。</p>
                 </div>
                 <button id="newKnowledge">新建资料</button>
               </div>
