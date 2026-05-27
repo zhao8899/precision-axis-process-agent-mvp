@@ -4,7 +4,9 @@ const state = {
   records: null,
   currentMaterial: "g3",
   currentTestRunId: "",
-  selectedKnowledge: null
+  selectedKnowledge: null,
+  knowledgeFilter: "all",
+  knowledgeSearch: ""
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -774,28 +776,54 @@ async function renderAdmin() {
 async function renderKnowledgeManager() {
   const data = await api("/api/admin/knowledge");
   state.assets = data.baseAssets || [];
+  const customAssets = data.customAssets || [];
+  const search = state.knowledgeSearch.trim().toLowerCase();
+  const matchesSearch = (...values) => !search || values.some((value) => String(value || "").toLowerCase().includes(search));
+  const visibleBaseAssets = state.assets.filter((item) => state.knowledgeFilter !== "custom" && matchesSearch(item.id, item.file, knowledgeAssetLabel(item)));
+  const visibleCustomAssets = customAssets.filter((item) => state.knowledgeFilter !== "base" && matchesSearch(item.id, item.file, item.title));
   $("#baseAssetCount").textContent = data.baseAssets.length;
-  $("#customAssetCount").textContent = data.customAssets.length;
+  $("#customAssetCount").textContent = customAssets.length;
+  $("#knowledgeFilterSummary").textContent = `当前显示 ${visibleBaseAssets.length + visibleCustomAssets.length} 份资料；基础 ${visibleBaseAssets.length}，自定义 ${visibleCustomAssets.length}。`;
+  $("#baseKnowledgeSection").hidden = state.knowledgeFilter === "custom";
+  $("#customKnowledgeSection").hidden = state.knowledgeFilter === "base";
 
-  $("#baseKnowledgeList").innerHTML = data.baseAssets
-    .map((item) => `<button class="${state.selectedKnowledge?.type === "base" && state.selectedKnowledge.id === item.id ? "active" : ""}" data-preview-base-asset="${item.id}">${item.file}</button>`)
-    .join("");
+  $("#baseKnowledgeList").innerHTML = visibleBaseAssets.length
+    ? visibleBaseAssets.map((item) => renderKnowledgeListButton(item, "base")).join("")
+    : '<p class="muted">没有匹配的基础资料。</p>';
 
-  const custom = data.customAssets.length
-    ? data.customAssets
-        .map(
-          (item) => `<div class="knowledge-item">
-            <button class="${state.selectedKnowledge?.type === "custom" && state.selectedKnowledge.id === item.id ? "active" : ""}" data-load-knowledge="${item.id}">${item.title}</button>
-            <small>${item.id} · ${item.bytes} bytes</small>
-          </div>`
-        )
-        .join("")
-    : '<p class="muted">暂无自定义资料。点击“新建资料”添加比赛补充资料。</p>';
-  $("#customKnowledgeList").innerHTML = custom;
+  $("#customKnowledgeList").innerHTML = visibleCustomAssets.length
+    ? visibleCustomAssets.map((item) => renderKnowledgeListButton(item, "custom")).join("")
+    : customAssets.length
+      ? '<p class="muted">没有匹配的自定义资料。</p>'
+      : '<p class="muted">暂无自定义资料。点击“新建资料”添加比赛补充资料。</p>';
 
-  if (!state.selectedKnowledge && data.baseAssets.length) {
-    await previewBaseKnowledge(data.baseAssets[0].id);
+  if (!state.selectedKnowledge && visibleBaseAssets.length) {
+    await previewBaseKnowledge(visibleBaseAssets[0].id);
+  } else {
+    updateKnowledgeSelection();
   }
+}
+
+function knowledgeAssetLabel(item) {
+  const id = item.id || "";
+  if (id === "system-prompt") return "系统提示词";
+  if (id.startsWith("kb-")) return "知识库";
+  if (["scope", "version", "next-actions", "dev-flow", "traceability", "defects"].includes(id)) return "项目管理";
+  if (["test-record", "test-judge", "kb-tests"].includes(id)) return "测试验收";
+  if (["demo", "import-guide", "config-record", "redaction"].includes(id)) return "导入演示";
+  return "基础资料";
+}
+
+function renderKnowledgeListButton(item, type) {
+  const isBase = type === "base";
+  const isActive = state.selectedKnowledge?.type === type && state.selectedKnowledge.id === item.id;
+  const title = isBase ? item.file : item.title;
+  const meta = isBase ? knowledgeAssetLabel(item) : `${item.id} · ${item.bytes} bytes`;
+  const dataAttr = isBase ? `data-preview-base-asset="${item.id}"` : `data-load-knowledge="${item.id}"`;
+  return `<button class="knowledge-doc${isActive ? " active" : ""}" ${dataAttr}>
+    <strong>${escapeHtml(title)}</strong>
+    <span>${escapeHtml(meta)}</span>
+  </button>`;
 }
 
 async function saveModelConfig() {
@@ -892,15 +920,19 @@ async function saveKnowledge() {
 
 async function loadKnowledge(id) {
   const item = await api(`/api/admin/knowledge/${id}`);
-  state.selectedKnowledge = { type: "custom", id };
+  state.selectedKnowledge = { type: "custom", id, title: item.file, content: item.content };
   $("#knowledgeId").value = item.id;
   $("#knowledgeTitle").value = item.content.split(/\r?\n/).find((line) => line.startsWith("# "))?.replace(/^#\s*/, "") || item.id;
   $("#knowledgeScenario").value = item.content.match(/适用场景：(.+)/)?.[1] || "";
   $("#knowledgeSource").value = item.content.match(/资料来源：(.+)/)?.[1] || "";
   $("#knowledgeOwner").value = item.content.match(/责任人：(.+)/)?.[1] || "";
   $("#knowledgeContent").value = item.content;
-  $("#knowledgePreviewTitle").textContent = item.file;
-  $("#knowledgePreviewContent").textContent = item.content;
+  setKnowledgePreview({
+    title: item.file,
+    typeLabel: "自定义资料",
+    meta: `${item.id} · 可编辑 · 已进入智能体问答上下文`,
+    content: item.content
+  });
   $("#knowledgeSaveState").textContent = `正在编辑：${item.file}`;
   updateKnowledgeSelection();
   await checkKnowledge(false);
@@ -908,11 +940,24 @@ async function loadKnowledge(id) {
 
 async function previewBaseKnowledge(id) {
   const asset = await api(`/api/assets/${id}`);
-  state.selectedKnowledge = { type: "base", id };
-  $("#knowledgePreviewTitle").textContent = asset.file;
-  $("#knowledgePreviewContent").textContent = asset.content;
+  state.selectedKnowledge = { type: "base", id, title: asset.file, content: asset.content };
+  setKnowledgePreview({
+    title: asset.file,
+    typeLabel: knowledgeAssetLabel(asset),
+    meta: "项目基础资料 · 只读 · 来源于MVP开发交付包",
+    content: asset.content
+  });
   $("#knowledgeSaveState").textContent = "基础资料来自项目资料包，只读不可编辑。";
   updateKnowledgeSelection();
+}
+
+function setKnowledgePreview({ title, typeLabel, meta, content }) {
+  $("#knowledgePreviewType").textContent = typeLabel;
+  $("#knowledgePreviewTitle").textContent = title;
+  $("#knowledgePreviewMeta").textContent = meta;
+  $("#knowledgePreviewContent").textContent = content;
+  $("#copyKnowledgePreview").disabled = !content;
+  $("#editSelectedKnowledge").disabled = state.selectedKnowledge?.type !== "custom";
 }
 
 function updateKnowledgeSelection() {
@@ -927,17 +972,40 @@ function updateKnowledgeSelection() {
 function newKnowledge() {
   const template = knowledgeTemplates[$("#knowledgeTemplate").value] || knowledgeTemplates.incident;
   state.selectedKnowledge = null;
+  $("#knowledgeEditor").open = true;
   $("#knowledgeTitle").value = template.title;
   $("#knowledgeId").value = knowledgeSlug(template.title);
   $("#knowledgeScenario").value = template.scenario;
   $("#knowledgeSource").value = template.source;
   $("#knowledgeOwner").value = template.owner;
   $("#knowledgeContent").value = [`# ${template.title}`, "", ...template.body, "", "## 使用边界", "不得编造资料包外实测值、订单、利润或自动放行结论。"].join("\n");
-  $("#knowledgePreviewTitle").textContent = "新建资料";
-  $("#knowledgePreviewContent").textContent = "";
+  setKnowledgePreview({
+    title: "新建资料",
+    typeLabel: "自定义资料",
+    meta: "尚未保存",
+    content: $("#knowledgeContent").value
+  });
   $("#knowledgeSaveState").textContent = "已套用资料模板，检查通过后保存。";
   updateKnowledgeSelection();
   checkKnowledge(false);
+}
+
+async function copyKnowledgePreview() {
+  const content = $("#knowledgePreviewContent").textContent || "";
+  if (!content.trim()) return;
+  try {
+    await navigator.clipboard.writeText(content);
+    $("#knowledgeSaveState").textContent = "当前预览内容已复制。";
+  } catch {
+    $("#knowledgeSaveState").textContent = "浏览器未允许直接复制，请选中预览内容后复制。";
+  }
+}
+
+function editSelectedKnowledge() {
+  if (state.selectedKnowledge?.type !== "custom") return;
+  $("#knowledgeEditor").open = true;
+  $("#knowledgeEditor").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#knowledgeTitle").focus();
 }
 
 function renderKnowledgeChecklist(validation = null) {
@@ -1139,6 +1207,13 @@ document.addEventListener("click", (event) => {
   const materialTab = event.target.closest("[data-material]");
   if (materialTab) renderMaterials(materialTab.dataset.material);
 
+  const knowledgeFilter = event.target.closest("[data-knowledge-filter]");
+  if (knowledgeFilter) {
+    state.knowledgeFilter = knowledgeFilter.dataset.knowledgeFilter;
+    document.querySelectorAll("[data-knowledge-filter]").forEach((button) => button.classList.toggle("active", button === knowledgeFilter));
+    renderKnowledgeManager();
+  }
+
   const knowledgeButton = event.target.closest("[data-load-knowledge]");
   if (knowledgeButton) loadKnowledge(knowledgeButton.dataset.loadKnowledge);
 
@@ -1206,10 +1281,16 @@ $("#testModelConfig").addEventListener("click", testModelConfig);
 $("#clearModelKey").addEventListener("click", clearModelKey);
 $("#saveKnowledge").addEventListener("click", saveKnowledge);
 $("#newKnowledge").addEventListener("click", newKnowledge);
+$("#copyKnowledgePreview").addEventListener("click", copyKnowledgePreview);
+$("#editSelectedKnowledge").addEventListener("click", editSelectedKnowledge);
 $("#checkKnowledge").addEventListener("click", () => checkKnowledge(true));
 $("#knowledgeTemplate").addEventListener("change", newKnowledge);
 $("#knowledgeTitle").addEventListener("input", () => {
   if (!$("#knowledgeId").value.trim()) $("#knowledgeId").value = knowledgeSlug($("#knowledgeTitle").value);
+});
+$("#knowledgeSearch").addEventListener("input", () => {
+  state.knowledgeSearch = $("#knowledgeSearch").value;
+  renderKnowledgeManager();
 });
 $("#deleteKnowledge").addEventListener("click", deleteKnowledge);
 $("#saveRoles").addEventListener("click", saveRoles);
