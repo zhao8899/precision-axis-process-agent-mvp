@@ -3,7 +3,8 @@ const state = {
   assets: [],
   records: null,
   currentMaterial: "g3",
-  currentTestRunId: ""
+  currentTestRunId: "",
+  selectedKnowledge: null
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -777,20 +778,24 @@ async function renderKnowledgeManager() {
   $("#customAssetCount").textContent = data.customAssets.length;
 
   $("#baseKnowledgeList").innerHTML = data.baseAssets
-    .map((item) => `<button data-preview-base-asset="${item.id}">${item.file}</button>`)
+    .map((item) => `<button class="${state.selectedKnowledge?.type === "base" && state.selectedKnowledge.id === item.id ? "active" : ""}" data-preview-base-asset="${item.id}">${item.file}</button>`)
     .join("");
 
   const custom = data.customAssets.length
     ? data.customAssets
         .map(
           (item) => `<div class="knowledge-item">
-            <button data-load-knowledge="${item.id}">${item.title}</button>
+            <button class="${state.selectedKnowledge?.type === "custom" && state.selectedKnowledge.id === item.id ? "active" : ""}" data-load-knowledge="${item.id}">${item.title}</button>
             <small>${item.id} · ${item.bytes} bytes</small>
           </div>`
         )
         .join("")
     : '<p class="muted">暂无自定义资料。点击“新建资料”添加比赛补充资料。</p>';
   $("#customKnowledgeList").innerHTML = custom;
+
+  if (!state.selectedKnowledge && data.baseAssets.length) {
+    await previewBaseKnowledge(data.baseAssets[0].id);
+  }
 }
 
 async function saveModelConfig() {
@@ -887,6 +892,7 @@ async function saveKnowledge() {
 
 async function loadKnowledge(id) {
   const item = await api(`/api/admin/knowledge/${id}`);
+  state.selectedKnowledge = { type: "custom", id };
   $("#knowledgeId").value = item.id;
   $("#knowledgeTitle").value = item.content.split(/\r?\n/).find((line) => line.startsWith("# "))?.replace(/^#\s*/, "") || item.id;
   $("#knowledgeScenario").value = item.content.match(/适用场景：(.+)/)?.[1] || "";
@@ -896,18 +902,31 @@ async function loadKnowledge(id) {
   $("#knowledgePreviewTitle").textContent = item.file;
   $("#knowledgePreviewContent").textContent = item.content;
   $("#knowledgeSaveState").textContent = `正在编辑：${item.file}`;
+  updateKnowledgeSelection();
   await checkKnowledge(false);
 }
 
 async function previewBaseKnowledge(id) {
   const asset = await api(`/api/assets/${id}`);
+  state.selectedKnowledge = { type: "base", id };
   $("#knowledgePreviewTitle").textContent = asset.file;
   $("#knowledgePreviewContent").textContent = asset.content;
   $("#knowledgeSaveState").textContent = "基础资料来自项目资料包，只读不可编辑。";
+  updateKnowledgeSelection();
+}
+
+function updateKnowledgeSelection() {
+  document.querySelectorAll("[data-preview-base-asset]").forEach((button) => {
+    button.classList.toggle("active", state.selectedKnowledge?.type === "base" && state.selectedKnowledge.id === button.dataset.previewBaseAsset);
+  });
+  document.querySelectorAll("[data-load-knowledge]").forEach((button) => {
+    button.classList.toggle("active", state.selectedKnowledge?.type === "custom" && state.selectedKnowledge.id === button.dataset.loadKnowledge);
+  });
 }
 
 function newKnowledge() {
   const template = knowledgeTemplates[$("#knowledgeTemplate").value] || knowledgeTemplates.incident;
+  state.selectedKnowledge = null;
   $("#knowledgeTitle").value = template.title;
   $("#knowledgeId").value = knowledgeSlug(template.title);
   $("#knowledgeScenario").value = template.scenario;
@@ -917,6 +936,7 @@ function newKnowledge() {
   $("#knowledgePreviewTitle").textContent = "新建资料";
   $("#knowledgePreviewContent").textContent = "";
   $("#knowledgeSaveState").textContent = "已套用资料模板，检查通过后保存。";
+  updateKnowledgeSelection();
   checkKnowledge(false);
 }
 

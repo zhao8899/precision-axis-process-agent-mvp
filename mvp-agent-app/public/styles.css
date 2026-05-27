@@ -913,14 +913,36 @@ th {
   overflow-wrap: anywhere;
 }
 
-.knowledge-layout {
-  display: grid;
-  grid-template-columns: 320px minmax(360px, 1fr);
-  gap: 16px;
+.asset-list button.active,
+.knowledge-item button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
-.knowledge-layout .knowledge-preview {
+.knowledge-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.knowledge-editor {
   grid-column: 1 / -1;
+}
+
+.knowledge-directory,
+.knowledge-preview {
+  min-height: 520px;
+}
+
+.knowledge-preview {
+  position: sticky;
+  top: 16px;
+}
+
+.knowledge-preview pre {
+  max-height: 68vh;
 }
 
 .knowledge-list-wrap h3 {
@@ -1126,6 +1148,15 @@ select {
 
   .knowledge-layout {
     grid-template-columns: 1fr;
+  }
+
+  .knowledge-directory,
+  .knowledge-preview {
+    min-height: 0;
+  }
+
+  .knowledge-preview {
+    position: static;
   }
 
   .stage-strip,
