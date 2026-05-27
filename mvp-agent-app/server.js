@@ -120,7 +120,11 @@ function normalizeProviderBaseUrl(value = "") {
 }
 
 function safeKnowledgeId(value = "") {
-  return String(value).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80);
+  return String(value)
+    .trim()
+    .replace(/[^\p{L}\p{N}_-]/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
 }
 
 async function getModelConfig() {
@@ -177,8 +181,15 @@ async function saveKnowledge({ id, title, content }) {
   await ensureRuntime();
   const safeId = safeKnowledgeId(id || title || `knowledge-${Date.now()}`);
   const normalized = content?.trim() ? content : `# ${title || safeId}\n\n`;
+  const validation = validateKnowledgePayload({ id: safeId, title, content: normalized });
+  if (!validation.ok) {
+    const error = new Error(validation.errors.join("；"));
+    error.statusCode = 400;
+    error.validation = validation;
+    throw error;
+  }
   await fs.writeFile(path.join(KNOWLEDGE_DIR, `${safeId}.md`), normalized, "utf8");
-  return { id: safeId, file: `${safeId}.md`, content: normalized };
+  return { id: safeId, file: `${safeId}.md`, content: normalized, validation };
 }
 
 async function readTestRuns() {
@@ -230,6 +241,26 @@ function detectBoundaryWarnings(answer) {
     warnings.push("疑似跳过首件检验表述");
   }
   return warnings;
+}
+
+function validateKnowledgePayload({ id, title, content }) {
+  const text = String(content || "");
+  const heading = text.split(/\r?\n/).find((line) => line.startsWith("# "));
+  const errors = [];
+  const warnings = detectBoundaryWarnings(text);
+  if (!safeKnowledgeId(id)) errors.push("资料ID不能为空，且只能包含字母、数字、短横线或下划线");
+  if (!String(title || heading || "").trim()) warnings.push("建议填写清晰资料标题，便于教师和选手查找");
+  if (text.trim().length < 40) warnings.push("资料内容较短，建议补充适用场景、依据来源和使用边界");
+  if (!/来源|依据|资料来源|source/i.test(text)) warnings.push("建议写明资料来源或依据，便于商业交付追溯");
+  if (!/适用|场景|范围|对象/.test(text)) warnings.push("建议写明适用场景，避免资料被泛化使用");
+  if (/客户|订单|利润|价格|合同/.test(text) && !/脱敏|待.*确认|企业确认|学校确认/.test(text)) {
+    warnings.push("涉及客户、订单、利润、价格或合同信息时，应标注脱敏或待确认");
+  }
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings: [...new Set(warnings)]
+  };
 }
 
 async function saveTestRun(run) {
@@ -629,6 +660,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/admin/knowledge" && req.method === "POST") {
       const body = await readJsonBody(req);
       sendJson(res, 200, await saveKnowledge(body));
+      return;
+    }
+
+    if (url.pathname === "/api/admin/knowledge/check" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      sendJson(res, 200, validateKnowledgePayload(body));
       return;
     }
 

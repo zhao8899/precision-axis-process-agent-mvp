@@ -8,6 +8,44 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+const knowledgeTemplates = {
+  incident: {
+    title: "孔距偏差处置补充",
+    scenario: "G6孔距偏差接近阈值时的复核与处置",
+    source: "教师确认/企业脱敏资料",
+    owner: "1号质检员",
+    body: ["## 处置步骤", "1. 暂停继续加工或装配。", "2. 复核装夹基准、刀补、量具和检测方法。", "3. 记录实测值、复测结果和处置依据。", "4. 由质检员依据图纸公差和实测数据判定。"]
+  },
+  inspection: {
+    title: "首件检验补充记录口径",
+    scenario: "G3首件检验和过程检验记录",
+    source: "比赛训练记录/教师确认",
+    owner: "1号质检员",
+    body: ["## 记录要求", "1. 写明检测项目、实测值、量具和检测人。", "2. 缺少实测数据时标注待补充。", "3. 不用口头判断替代检测记录。"]
+  },
+  demo: {
+    title: "现场演示话术补充",
+    scenario: "客户或评委提问时的边界说明",
+    source: "演示脚本/教师确认",
+    owner: "指导教师",
+    body: ["## 话术要点", "1. 先说明智能体是辅助提示和资料组织工具。", "2. 强调最终判断由学生依据图纸、公差和实测数据完成。", "3. 不声称自动放行或替代质检。"]
+  },
+  business: {
+    title: "应用价值说明补充",
+    scenario: "商业展示或验收汇报",
+    source: "项目资料包/学校确认",
+    owner: "项目负责人",
+    body: ["## 价值说明", "1. 从质量、效率、绿色、成本和岗位能力五类说明价值。", "2. 未经学校或企业确认的数据标注为待确认。", "3. 不把训练测算写成企业真实订单或真实利润。"]
+  },
+  blank: {
+    title: "新资料标题",
+    scenario: "",
+    source: "",
+    owner: "",
+    body: ["## 内容", "请输入资料内容。", "", "## 使用边界", "不得编造资料包外实测值、订单、利润或自动放行结论。"]
+  }
+};
+
 async function api(path, options) {
   const response = await fetch(path, options);
   const text = await response.text();
@@ -527,6 +565,34 @@ function escapeHtml(value = "") {
     .replaceAll('"', "&quot;");
 }
 
+function knowledgeSlug(value = "") {
+  return String(value)
+    .trim()
+    .replace(/[^\w\u4e00-\u9fa5-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+function buildKnowledgeContent() {
+  const title = $("#knowledgeTitle").value.trim() || "新资料标题";
+  const scenario = $("#knowledgeScenario").value.trim() || "待补充";
+  const source = $("#knowledgeSource").value.trim() || "待确认";
+  const owner = $("#knowledgeOwner").value.trim() || "待指定";
+  const content = $("#knowledgeContent").value.trim();
+  const body = content.replace(/^# .*(\r?\n)+/, "").trim();
+  return [
+    `# ${title}`,
+    "",
+    "## 资料元数据",
+    `- 适用场景：${scenario}`,
+    `- 资料来源：${source}`,
+    `- 责任人：${owner}`,
+    `- 更新日期：${new Date().toISOString().slice(0, 10)}`,
+    "",
+    body || "## 内容\n待补充。"
+  ].join("\n");
+}
+
 function syncRecordInputs(target) {
   if (!target.closest("#records") && !target.closest("#workflow")) return;
   if (!state.records) loadRecords();
@@ -796,29 +862,41 @@ async function refreshProviderNotice() {
 }
 
 async function saveKnowledge() {
-  const result = await api("/api/admin/knowledge", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      id: $("#knowledgeId").value,
-      title: $("#knowledgeTitle").value,
-      content: $("#knowledgeContent").value
-    })
-  });
-  $("#knowledgeId").value = result.id;
-  $("#knowledgeSaveState").textContent = `资料已保存：${result.file}`;
-  await renderKnowledgeManager();
-  await loadKnowledge(result.id);
+  try {
+    const content = buildKnowledgeContent();
+    const result = await api("/api/admin/knowledge", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: $("#knowledgeId").value || knowledgeSlug($("#knowledgeTitle").value),
+        title: $("#knowledgeTitle").value,
+        content
+      })
+    });
+    $("#knowledgeId").value = result.id;
+    $("#knowledgeSaveState").textContent = result.validation?.warnings?.length
+      ? `资料已保存：${result.file}；仍有${result.validation.warnings.length}项建议待完善。`
+      : `资料已保存：${result.file}`;
+    renderKnowledgeChecklist(result.validation);
+    await renderKnowledgeManager();
+    await loadKnowledge(result.id);
+  } catch (error) {
+    $("#knowledgeSaveState").textContent = `保存失败：${error.message}`;
+  }
 }
 
 async function loadKnowledge(id) {
   const item = await api(`/api/admin/knowledge/${id}`);
   $("#knowledgeId").value = item.id;
   $("#knowledgeTitle").value = item.content.split(/\r?\n/).find((line) => line.startsWith("# "))?.replace(/^#\s*/, "") || item.id;
+  $("#knowledgeScenario").value = item.content.match(/适用场景：(.+)/)?.[1] || "";
+  $("#knowledgeSource").value = item.content.match(/资料来源：(.+)/)?.[1] || "";
+  $("#knowledgeOwner").value = item.content.match(/责任人：(.+)/)?.[1] || "";
   $("#knowledgeContent").value = item.content;
   $("#knowledgePreviewTitle").textContent = item.file;
   $("#knowledgePreviewContent").textContent = item.content;
   $("#knowledgeSaveState").textContent = `正在编辑：${item.file}`;
+  await checkKnowledge(false);
 }
 
 async function previewBaseKnowledge(id) {
@@ -829,12 +907,51 @@ async function previewBaseKnowledge(id) {
 }
 
 function newKnowledge() {
-  $("#knowledgeId").value = "";
-  $("#knowledgeTitle").value = "";
-  $("#knowledgeContent").value = "# 新资料标题\n\n";
+  const template = knowledgeTemplates[$("#knowledgeTemplate").value] || knowledgeTemplates.incident;
+  $("#knowledgeTitle").value = template.title;
+  $("#knowledgeId").value = knowledgeSlug(template.title);
+  $("#knowledgeScenario").value = template.scenario;
+  $("#knowledgeSource").value = template.source;
+  $("#knowledgeOwner").value = template.owner;
+  $("#knowledgeContent").value = [`# ${template.title}`, "", ...template.body, "", "## 使用边界", "不得编造资料包外实测值、订单、利润或自动放行结论。"].join("\n");
   $("#knowledgePreviewTitle").textContent = "新建资料";
   $("#knowledgePreviewContent").textContent = "";
-  $("#knowledgeSaveState").textContent = "填写资料ID、标题和内容后保存。";
+  $("#knowledgeSaveState").textContent = "已套用资料模板，检查通过后保存。";
+  checkKnowledge(false);
+}
+
+function renderKnowledgeChecklist(validation = null) {
+  if (!$("#knowledgeChecklist")) return;
+  if (!validation) {
+    $("#knowledgeChecklist").innerHTML = '<span class="muted">资料检查结果会显示在这里。</span>';
+    return;
+  }
+  const errors = validation.errors || [];
+  const warnings = validation.warnings || [];
+  $("#knowledgeChecklist").innerHTML = `
+    <div class="${errors.length ? "bad" : "ok"}"><strong>${errors.length ? "需修正" : "基础校验通过"}</strong>${errors.join("；") || "资料ID和内容格式可保存"}</div>
+    <div class="${warnings.length ? "warn" : "ok"}"><strong>${warnings.length ? "完善建议" : "边界正常"}</strong>${warnings.join("；") || "未发现明显商业交付风险"}</div>
+  `;
+}
+
+async function checkKnowledge(showStatus = true) {
+  try {
+    const validation = await api("/api/admin/knowledge/check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: $("#knowledgeId").value || knowledgeSlug($("#knowledgeTitle").value),
+        title: $("#knowledgeTitle").value,
+        content: buildKnowledgeContent()
+      })
+    });
+    renderKnowledgeChecklist(validation);
+    if (showStatus) $("#knowledgeSaveState").textContent = validation.ok ? "资料检查完成，可保存。" : "资料检查发现必改项。";
+    return validation;
+  } catch (error) {
+    $("#knowledgeSaveState").textContent = `检查失败：${error.message}`;
+    return null;
+  }
 }
 
 async function deleteKnowledge() {
@@ -1069,6 +1186,11 @@ $("#testModelConfig").addEventListener("click", testModelConfig);
 $("#clearModelKey").addEventListener("click", clearModelKey);
 $("#saveKnowledge").addEventListener("click", saveKnowledge);
 $("#newKnowledge").addEventListener("click", newKnowledge);
+$("#checkKnowledge").addEventListener("click", () => checkKnowledge(true));
+$("#knowledgeTemplate").addEventListener("change", newKnowledge);
+$("#knowledgeTitle").addEventListener("input", () => {
+  if (!$("#knowledgeId").value.trim()) $("#knowledgeId").value = knowledgeSlug($("#knowledgeTitle").value);
+});
 $("#deleteKnowledge").addEventListener("click", deleteKnowledge);
 $("#saveRoles").addEventListener("click", saveRoles);
 $("#reloadRoles").addEventListener("click", renderAdmin);
