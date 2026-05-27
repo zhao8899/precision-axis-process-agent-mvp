@@ -985,10 +985,6 @@ th {
   align-items: start;
 }
 
-.knowledge-editor {
-  grid-column: 1 / -1;
-}
-
 .knowledge-directory,
 .knowledge-preview {
   min-height: 600px;
@@ -1029,53 +1025,6 @@ th {
   color: var(--muted);
   display: block;
   overflow-wrap: anywhere;
-}
-
-.knowledge-editor {
-  padding: 0;
-  overflow: hidden;
-}
-
-.knowledge-editor summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px;
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.knowledge-editor summary::-webkit-details-marker {
-  display: none;
-}
-
-.knowledge-editor summary::after {
-  content: "展开";
-  min-width: 52px;
-  padding: 5px 9px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: center;
-}
-
-.knowledge-editor[open] summary::after {
-  content: "收起";
-}
-
-.knowledge-editor summary small {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.knowledge-editor-body {
-  border-top: 1px solid var(--line);
-  padding: 16px;
 }
 
 .knowledge-meta {
@@ -1228,6 +1177,46 @@ select {
   margin-bottom: 10px;
 }
 
+.modal.hidden {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(980px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(16, 24, 40, 0.28);
+  padding: 18px;
+}
+
+.knowledge-modal-panel textarea {
+  min-height: 300px;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
 @media (max-width: 800px) {
   .layout,
   .split,
@@ -1269,6 +1258,15 @@ select {
 
   .knowledge-preview {
     position: static;
+  }
+
+  .modal {
+    padding: 10px;
+  }
+
+  .modal-panel {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
   }
 
   .stage-strip,

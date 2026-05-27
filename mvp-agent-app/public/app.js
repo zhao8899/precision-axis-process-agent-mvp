@@ -913,6 +913,7 @@ async function saveKnowledge() {
     renderKnowledgeChecklist(result.validation);
     await renderKnowledgeManager();
     await loadKnowledge(result.id);
+    closeKnowledgeModal();
   } catch (error) {
     $("#knowledgeSaveState").textContent = `保存失败：${error.message}`;
   }
@@ -956,6 +957,7 @@ function setKnowledgePreview({ title, typeLabel, meta, content }) {
   $("#knowledgePreviewTitle").textContent = title;
   $("#knowledgePreviewMeta").textContent = meta;
   $("#knowledgePreviewContent").textContent = content;
+  $("#knowledgePreviewState").textContent = "";
   $("#copyKnowledgePreview").disabled = !content;
   $("#editSelectedKnowledge").disabled = state.selectedKnowledge?.type !== "custom";
 }
@@ -971,20 +973,13 @@ function updateKnowledgeSelection() {
 
 function newKnowledge() {
   const template = knowledgeTemplates[$("#knowledgeTemplate").value] || knowledgeTemplates.incident;
-  state.selectedKnowledge = null;
-  $("#knowledgeEditor").open = true;
+  openKnowledgeModal("新建资料");
   $("#knowledgeTitle").value = template.title;
   $("#knowledgeId").value = knowledgeSlug(template.title);
   $("#knowledgeScenario").value = template.scenario;
   $("#knowledgeSource").value = template.source;
   $("#knowledgeOwner").value = template.owner;
   $("#knowledgeContent").value = [`# ${template.title}`, "", ...template.body, "", "## 使用边界", "不得编造资料包外实测值、订单、利润或自动放行结论。"].join("\n");
-  setKnowledgePreview({
-    title: "新建资料",
-    typeLabel: "自定义资料",
-    meta: "尚未保存",
-    content: $("#knowledgeContent").value
-  });
   $("#knowledgeSaveState").textContent = "已套用资料模板，检查通过后保存。";
   updateKnowledgeSelection();
   checkKnowledge(false);
@@ -995,17 +990,27 @@ async function copyKnowledgePreview() {
   if (!content.trim()) return;
   try {
     await navigator.clipboard.writeText(content);
-    $("#knowledgeSaveState").textContent = "当前预览内容已复制。";
+    $("#knowledgePreviewState").textContent = "当前预览内容已复制。";
   } catch {
-    $("#knowledgeSaveState").textContent = "浏览器未允许直接复制，请选中预览内容后复制。";
+    $("#knowledgePreviewState").textContent = "浏览器未允许直接复制，请选中预览内容后复制。";
   }
 }
 
 function editSelectedKnowledge() {
   if (state.selectedKnowledge?.type !== "custom") return;
-  $("#knowledgeEditor").open = true;
-  $("#knowledgeEditor").scrollIntoView({ behavior: "smooth", block: "start" });
+  openKnowledgeModal("编辑自定义资料");
   $("#knowledgeTitle").focus();
+}
+
+function openKnowledgeModal(title = "自定义资料") {
+  $("#knowledgeModalTitle").textContent = title;
+  $("#knowledgeModal").classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeKnowledgeModal() {
+  $("#knowledgeModal").classList.add("hidden");
+  document.body.classList.remove("modal-open");
 }
 
 function renderKnowledgeChecklist(validation = null) {
@@ -1050,8 +1055,10 @@ async function deleteKnowledge() {
   }
   if (!confirm(`确定删除自定义资料 ${id}？`)) return;
   await api(`/api/admin/knowledge/${encodeURIComponent(id)}`, { method: "DELETE" });
-  newKnowledge();
-  $("#knowledgeSaveState").textContent = `资料已删除：${id}`;
+  if (state.selectedKnowledge?.type === "custom" && state.selectedKnowledge.id === id) {
+    state.selectedKnowledge = null;
+  }
+  closeKnowledgeModal();
   await renderKnowledgeManager();
 }
 
@@ -1220,6 +1227,8 @@ document.addEventListener("click", (event) => {
   const previewBaseAsset = event.target.closest("[data-preview-base-asset]");
   if (previewBaseAsset) previewBaseKnowledge(previewBaseAsset.dataset.previewBaseAsset);
 
+  if (event.target.closest("[data-close-knowledge-modal]")) closeKnowledgeModal();
+
   const testRun = event.target.closest("[data-load-test-run]");
   if (testRun) loadTestRun(testRun.dataset.loadTestRun);
 
@@ -1283,6 +1292,7 @@ $("#saveKnowledge").addEventListener("click", saveKnowledge);
 $("#newKnowledge").addEventListener("click", newKnowledge);
 $("#copyKnowledgePreview").addEventListener("click", copyKnowledgePreview);
 $("#editSelectedKnowledge").addEventListener("click", editSelectedKnowledge);
+$("#closeKnowledgeModal").addEventListener("click", closeKnowledgeModal);
 $("#checkKnowledge").addEventListener("click", () => checkKnowledge(true));
 $("#knowledgeTemplate").addEventListener("change", newKnowledge);
 $("#knowledgeTitle").addEventListener("input", () => {
@@ -1339,6 +1349,11 @@ document.addEventListener("change", (event) => {
 });
 document.addEventListener("input", (event) => {
   if (event.target.closest("#workflow")) saveRecords();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("#knowledgeModal").classList.contains("hidden")) {
+    closeKnowledgeModal();
+  }
 });
 
 boot();

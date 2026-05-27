@@ -394,45 +394,8 @@
                 </div>
               </div>
               <pre id="knowledgePreviewContent"></pre>
+              <p class="notice" id="knowledgePreviewState"></p>
             </section>
-
-            <details class="field-panel knowledge-editor" id="knowledgeEditor">
-              <summary>
-                <span>
-                  <strong>自定义资料维护</strong>
-                  <small>新增、编辑、检查和删除训练补充资料</small>
-                </span>
-              </summary>
-              <div class="knowledge-editor-body">
-                <p>按商业交付标准记录来源、场景、边界和责任人，避免后续验收时无法追溯。</p>
-                <div class="admin-form">
-                  <label>资料类型
-                    <select id="knowledgeTemplate">
-                      <option value="incident">异常处置补充</option>
-                      <option value="inspection">检验记录口径</option>
-                      <option value="demo">演示话术补充</option>
-                      <option value="business">应用价值说明</option>
-                      <option value="blank">空白资料</option>
-                    </select>
-                  </label>
-                  <label>资料ID<input id="knowledgeId" placeholder="hole-distance-response" /></label>
-                  <label>资料标题<input id="knowledgeTitle" placeholder="孔距偏差处置补充" /></label>
-                  <div class="knowledge-meta">
-                    <label>适用场景<input id="knowledgeScenario" placeholder="例如：G6孔距偏差预警复核" /></label>
-                    <label>资料来源<input id="knowledgeSource" placeholder="例如：教师确认/企业脱敏资料/比赛训练记录" /></label>
-                    <label>责任人<input id="knowledgeOwner" placeholder="例如：指导教师/1号质检员" /></label>
-                  </div>
-                  <label>资料内容<textarea id="knowledgeContent" rows="14" placeholder="# 孔距偏差处置补充&#10;&#10;输入资料内容"></textarea></label>
-                  <div class="knowledge-checklist" id="knowledgeChecklist"></div>
-                  <div class="toolbar-actions">
-                    <button id="checkKnowledge">检查资料</button>
-                    <button id="saveKnowledge">保存资料</button>
-                    <button id="deleteKnowledge">删除当前资料</button>
-                  </div>
-                </div>
-                <p class="notice" id="knowledgeSaveState"></p>
-              </div>
-            </details>
           </div>
         </section>
 
@@ -500,6 +463,46 @@
         </section>
       </section>
     </main>
+
+    <div class="modal hidden" id="knowledgeModal" role="dialog" aria-modal="true" aria-labelledby="knowledgeModalTitle">
+      <div class="modal-backdrop" data-close-knowledge-modal></div>
+      <section class="modal-panel knowledge-modal-panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">自定义资料</p>
+            <h2 id="knowledgeModalTitle">新建资料</h2>
+            <p>按商业交付标准记录来源、场景、边界和责任人，避免后续验收时无法追溯。</p>
+          </div>
+          <button id="closeKnowledgeModal" aria-label="关闭资料编辑窗口">关闭</button>
+        </div>
+        <div class="admin-form">
+          <label>资料类型
+            <select id="knowledgeTemplate">
+              <option value="incident">异常处置补充</option>
+              <option value="inspection">检验记录口径</option>
+              <option value="demo">演示话术补充</option>
+              <option value="business">应用价值说明</option>
+              <option value="blank">空白资料</option>
+            </select>
+          </label>
+          <label>资料ID<input id="knowledgeId" placeholder="hole-distance-response" /></label>
+          <label>资料标题<input id="knowledgeTitle" placeholder="孔距偏差处置补充" /></label>
+          <div class="knowledge-meta">
+            <label>适用场景<input id="knowledgeScenario" placeholder="例如：G6孔距偏差预警复核" /></label>
+            <label>资料来源<input id="knowledgeSource" placeholder="例如：教师确认/企业脱敏资料/比赛训练记录" /></label>
+            <label>责任人<input id="knowledgeOwner" placeholder="例如：指导教师/1号质检员" /></label>
+          </div>
+          <label>资料内容<textarea id="knowledgeContent" rows="14" placeholder="# 孔距偏差处置补充&#10;&#10;输入资料内容"></textarea></label>
+          <div class="knowledge-checklist" id="knowledgeChecklist"></div>
+          <div class="toolbar-actions">
+            <button id="checkKnowledge">检查资料</button>
+            <button id="saveKnowledge">保存资料</button>
+            <button id="deleteKnowledge">删除当前资料</button>
+          </div>
+        </div>
+        <p class="notice" id="knowledgeSaveState"></p>
+      </section>
+    </div>
 
     <script src="/app.js"></script>
   </body>
