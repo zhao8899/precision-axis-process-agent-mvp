@@ -1,0 +1,25 @@
+services:
+  mvp-agent-console:
+    build:
+      context: .
+      dockerfile: mvp-agent-app/Dockerfile
+    container_name: jingzhouzhikong-mvp-agent-console
+    ports:
+      - "${MVP_CONSOLE_PORT:-8080}:8080"
+    environment:
+      PORT: "8080"
+      MVP_PACKAGE_DIR: "/app/MVP开发交付包"
+      RUNTIME_DIR: "/app/runtime"
+      AI_PROVIDER_BASE_URL: "${AI_PROVIDER_BASE_URL:-}"
+      AI_PROVIDER_API_KEY: "${AI_PROVIDER_API_KEY:-}"
+      AI_PROVIDER_MODEL: "${AI_PROVIDER_MODEL:-gpt-4o-mini}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - mvp_agent_runtime:/app/runtime
+
+volumes:
+  mvp_agent_runtime:

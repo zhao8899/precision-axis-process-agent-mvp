@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>精轴智控工艺辅助智能体</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <h1>精轴智控工艺辅助智能体</h1>
+        <p id="subtitle">比赛现场辅助展示模式</p>
+      </div>
+      <div class="top-status">
+        <div class="top-stat">
+          <span>服务状态</span>
+          <strong id="health">checking...</strong>
+        </div>
+        <div class="top-stat">
+          <span>当前阶段</span>
+          <strong id="topStage">待开始</strong>
+        </div>
+        <div class="top-stat">
+          <span>记录进度</span>
+          <strong id="topProgress">0/8</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <nav class="sidebar" aria-label="主导航">
+        <button class="nav active" data-view="contestants">选手服务</button>
+        <button class="nav" data-view="competition">质量证据</button>
+        <button class="nav" data-view="workflow">比赛流程</button>
+        <button class="nav" data-view="records">现场记录</button>
+        <button class="nav" data-view="materials">材料生成</button>
+        <button class="nav" data-view="overview">项目边界</button>
+        <button class="nav" data-view="rules">G1-G8</button>
+        <button class="nav" data-view="tests">T01-T08</button>
+        <button class="nav" data-view="assets">资料库</button>
+        <button class="nav" data-view="knowledge">资料管理</button>
+        <button class="nav" data-view="ask">工艺问答</button>
+        <button class="nav" data-view="admin">系统管理</button>
+      </nav>
+
+      <section class="content">
+        <section id="contestants" class="view active">
+          <div class="field-hero contestant-hero">
+            <div>
+              <h2>按角色提供智能体服务</h2>
+              <p>每名选手只看自己当前需要的提问模板、记录动作、现场话术和风险提醒。智能体辅助，学生完成操作和判断。</p>
+              <div class="hero-actions">
+                <button data-jump="workflow">查看比赛流程</button>
+                <button data-jump="records">填写现场记录</button>
+                <button data-jump="materials">生成归档材料</button>
+              </div>
+            </div>
+            <div class="hero-metrics">
+              <div><strong>1号</strong><span>质检/工艺</span></div>
+              <div><strong>2号</strong><span>数控车工</span></div>
+              <div><strong>3号</strong><span>铣工/装配</span></div>
+            </div>
+          </div>
+
+          <section class="role-entry-grid">
+            <article>
+              <h3>选手端</h3>
+              <p>按1号、2号、3号分工查看提问模板、记录动作和风险提醒。</p>
+              <button data-jump="contestants">进入选手服务</button>
+            </article>
+            <article>
+              <h3>教师端</h3>
+              <p>查看T01-T08测试批次、人工判定、验收摘要和复测缺口。</p>
+              <button data-jump="tests">进入测试验收</button>
+            </article>
+            <article>
+              <h3>管理员端</h3>
+              <p>维护模型服务、资料库和角色能力配置，API Key仅保存在服务端。</p>
+              <button data-jump="admin">进入系统管理</button>
+            </article>
+          </section>
+
+          <section class="mission-dashboard" id="missionDashboard"></section>
+          <div class="contestant-tabs" id="contestantTabs"></div>
+          <div id="contestantService" class="contestant-service"></div>
+        </section>
+
+        <section id="competition" class="view">
+          <div class="field-hero">
+            <div>
+              <p class="eyebrow">精轴智控 · 孔系协同</p>
+              <h2>质量证据展示板</h2>
+              <p>现场只展示质量控制点、异常处置记录和终检归档摘要；学生负责操作、判断、放行和处置。</p>
+            </div>
+            <div class="hero-metrics">
+              <div><strong>G1-G8</strong><span>质量控制闭环</span></div>
+              <div><strong>3类</strong><span>现场展示界面</span></div>
+              <div><strong>1号</strong><span>质检员最终放行</span></div>
+            </div>
+          </div>
+
+          <div class="stage-strip" id="stageStrip"></div>
+
+          <div class="field-grid">
+            <section class="field-panel main-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">现场主屏</p>
+                  <h2>G1-G8质量控制点</h2>
+                </div>
+                <span class="badge">未放行不能进入下一步</span>
+              </div>
+              <div class="quality-board" id="qualityBoard"></div>
+            </section>
+
+            <aside class="field-panel side-panel">
+              <p class="eyebrow">学生主动解释句</p>
+              <h2>现场话术</h2>
+              <ul class="script-list" id="scriptList"></ul>
+            </aside>
+          </div>
+
+          <div class="field-grid">
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">异常处置</p>
+                  <h2>孔系与装配风险记录</h2>
+                </div>
+                <span class="badge warn">先停机确认安全</span>
+              </div>
+              <div id="fieldIncidents" class="incident-list"></div>
+            </section>
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">终检归档</p>
+                  <h2>G8摘要结构</h2>
+                </div>
+                <span class="badge">以实测记录为准</span>
+              </div>
+              <div class="archive-summary">
+                <dl>
+                  <div><dt>径向跳动</dt><dd>填写G8实测值；训练测算口径为0.020mm</dd></div>
+                  <div><dt>端面跳动</dt><dd>填写G8实测值；训练测算口径为0.018mm</dd></div>
+                  <div><dt>转动状态</dt><dd>记录手动试转、卡滞、异响和复测结果</dd></div>
+                  <div><dt>归档结论</dt><dd>对应G1-G8原始记录，不补造缺失数据</dd></div>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="overview" class="view">
+          <div class="panel">
+            <h2>项目边界</h2>
+            <p id="positioning"></p>
+            <blockquote id="boundary"></blockquote>
+            <p class="notice" id="localNotice"></p>
+          </div>
+          <div class="grid" id="roles"></div>
+          <div class="panel">
+            <h2>禁止表述</h2>
+            <ul id="forbidden"></ul>
+          </div>
+        </section>
+
+        <section id="materials" class="view">
+          <div class="panel toolbar">
+            <div>
+              <p class="eyebrow">归档输出</p>
+              <h2>比赛材料生成</h2>
+              <p>根据现场记录生成可复核材料草稿。缺少实测数据时保留“待补充”，不得自动补造。</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="refreshMaterials">刷新材料</button>
+              <button id="copyMaterial">复制当前材料</button>
+              <button id="exportMaterial">导出Markdown</button>
+            </div>
+          </div>
+
+          <div class="material-layout">
+            <aside class="material-tabs">
+              <button class="material-tab active" data-material="g3">G3首检记录</button>
+              <button class="material-tab" data-material="incident">异常处置记录</button>
+              <button class="material-tab" data-material="g8">G8终检归档</button>
+              <button class="material-tab" data-material="value">应用价值摘要</button>
+            </aside>
+            <article class="material-preview">
+              <h2 id="materialTitle">G3首检记录</h2>
+              <pre id="materialContent"></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="workflow" class="view">
+          <div class="panel toolbar">
+            <div>
+              <h2>比赛作业流程</h2>
+              <p>按资料包给出的时间节点组织训练和现场作业，不替代学生判断。</p>
+            </div>
+            <div class="timer-box">
+              <strong id="timerDisplay">00:00</strong>
+              <button id="startTimer">开始</button>
+              <button id="pauseTimer">暂停</button>
+              <button id="resetTimer">重置</button>
+            </div>
+          </div>
+
+          <div id="workflowSummary" class="workflow-summary"></div>
+
+          <div class="panel toolbar">
+            <div>
+              <h2>角色过滤</h2>
+              <p>按选手分工查看当前责任任务。</p>
+            </div>
+            <select id="roleFilter">
+              <option value="all">全部角色</option>
+              <option value="1号">1号 质检员/工艺员</option>
+              <option value="2号">2号 数控车工</option>
+              <option value="3号">3号 数控铣工/装配钳工</option>
+            </select>
+          </div>
+
+          <div id="workflowBoard" class="workflow-board"></div>
+        </section>
+
+        <section id="records" class="view">
+          <div class="panel toolbar">
+            <div>
+              <h2>现场记录工作台</h2>
+              <p>用于训练和现场辅助记录。数据保存在本机浏览器，不上传服务器。</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="validateRecords">完整性检查</button>
+              <button id="exportEvidence">导出证据包</button>
+              <button id="saveRecords">保存</button>
+              <button id="exportRecords">导出JSON</button>
+              <button id="resetRecords">重置</button>
+              <button id="printRecords">打印</button>
+            </div>
+          </div>
+
+          <section class="field-panel">
+            <div id="validationSummary" class="validation-summary"></div>
+          </section>
+
+          <section class="field-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">G1-G8</p>
+                <h2>质量控制记录</h2>
+              </div>
+              <span class="badge" id="recordSaveState">未保存</span>
+            </div>
+            <div class="record-table-wrap">
+              <table id="recordTable" class="record-table"></table>
+            </div>
+          </section>
+
+          <div class="field-grid">
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">异常</p>
+                  <h2>异常处置记录</h2>
+                </div>
+                <button id="addIncident">新增异常</button>
+              </div>
+              <div id="incidentRecords" class="incident-records"></div>
+            </section>
+
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">G8</p>
+                  <h2>终检归档草稿</h2>
+                </div>
+                <span class="badge">不得补造缺失数据</span>
+              </div>
+              <div class="archive-form">
+                <label>径向跳动<input id="archiveRadial" placeholder="填写现场实测值" /></label>
+                <label>端面跳动<input id="archiveFace" placeholder="填写现场实测值" /></label>
+                <label>转动状态<textarea id="archiveRotation" rows="3" placeholder="记录手动试转、卡滞、异响和复测结果"></textarea></label>
+                <label>归档结论<textarea id="archiveConclusion" rows="4" placeholder="对应G1-G8原始记录填写结论"></textarea></label>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="rules" class="view">
+          <div class="panel">
+            <h2>G1-G8质量控制点</h2>
+            <div class="table-wrap">
+              <table id="rulesTable"></table>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>异常处置规则</h2>
+            <div id="incidents"></div>
+          </div>
+        </section>
+
+        <section id="tests" class="view">
+          <div class="panel toolbar">
+            <div>
+              <h2>T01-T08测试验收</h2>
+              <p>本地预检用于开发校核；真实测试必须使用已配置模型服务，结果保存为测试批次，再由教师人工判定。</p>
+              <p class="notice" id="realTestStatus">真实模型测试状态检查中...</p>
+              <div class="preflight-grid" id="testPreflight"></div>
+            </div>
+            <div class="test-run-controls">
+              <input id="testerName" placeholder="测试人/教师姓名" />
+              <button id="runTests">本地预检</button>
+              <button id="runRealTests">真实模型测试</button>
+              <button id="refreshTestRuns">刷新记录</button>
+            </div>
+          </div>
+          <div class="field-grid">
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <h2>测试批次记录</h2>
+                  <p>只保存真实回答和人工判定，不用标准稿替代模型输出。</p>
+                </div>
+                <span class="badge" id="currentRunMode">未执行</span>
+              </div>
+              <div id="testRunList" class="test-run-list"></div>
+            </section>
+            <section class="field-panel">
+              <h2>验收摘要</h2>
+              <pre id="acceptanceSummary">暂无测试批次。</pre>
+            </section>
+          </div>
+          <div id="testResults" class="test-results"></div>
+        </section>
+
+        <section id="assets" class="view">
+          <div class="panel split">
+            <div>
+              <h2>项目资料库</h2>
+              <p>选手查阅项目基础资料、G1-G8规则、异常处置和验收口径。资料维护请进入“资料管理”。</p>
+              <div id="assetList" class="asset-list"></div>
+            </div>
+            <article class="asset-preview">
+              <h3 id="assetTitle">选择文件</h3>
+              <pre id="assetContent"></pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="knowledge" class="view">
+          <div class="field-hero">
+            <div>
+              <p class="eyebrow">资料维护</p>
+              <h2>资料库管理</h2>
+              <p>维护比赛项目资料、训练补充资料和现场规则口径。基础资料来自项目资料包，自定义资料会进入智能体问答上下文。</p>
+            </div>
+            <div class="hero-metrics">
+              <div><strong id="baseAssetCount">0</strong><span>基础资料</span></div>
+              <div><strong id="customAssetCount">0</strong><span>自定义资料</span></div>
+            </div>
+          </div>
+
+          <div class="knowledge-layout">
+            <section class="field-panel">
+              <div class="section-head">
+                <div>
+                  <h2>资料目录</h2>
+                  <p>基础资料只读；自定义资料可编辑、删除。</p>
+                </div>
+                <button id="newKnowledge">新建资料</button>
+              </div>
+              <div class="knowledge-list-wrap">
+                <h3>基础资料</h3>
+                <div id="baseKnowledgeList" class="asset-list"></div>
+                <h3>自定义资料</h3>
+                <div id="customKnowledgeList" class="asset-list"></div>
+              </div>
+            </section>
+
+            <section class="field-panel">
+              <h2>自定义资料编辑</h2>
+              <p>建议每份资料聚焦一个主题，例如“孔距偏差处置补充”“首件检验补充记录口径”。</p>
+              <div class="admin-form">
+                <label>资料ID<input id="knowledgeId" placeholder="hole-distance-response" /></label>
+                <label>资料标题<input id="knowledgeTitle" placeholder="孔距偏差处置补充" /></label>
+                <label>资料内容<textarea id="knowledgeContent" rows="14" placeholder="# 孔距偏差处置补充&#10;&#10;输入资料内容"></textarea></label>
+                <div class="toolbar-actions">
+                  <button id="saveKnowledge">保存资料</button>
+                  <button id="deleteKnowledge">删除当前资料</button>
+                </div>
+              </div>
+              <p class="notice" id="knowledgeSaveState"></p>
+            </section>
+
+            <section class="field-panel knowledge-preview">
+              <h2>资料预览</h2>
+              <h3 id="knowledgePreviewTitle">选择资料</h3>
+              <pre id="knowledgePreviewContent"></pre>
+            </section>
+          </div>
+        </section>
+
+        <section id="ask" class="view">
+          <div class="panel">
+            <h2>工艺问答</h2>
+            <p>用于训练和现场辅助提问，回答必须以图纸、公差、G1-G8质量控制点和实测数据为依据。</p>
+            <p class="notice" id="providerStatus">智能体服务状态检查中...</p>
+            <textarea id="question" rows="4">G3首件检验应检查哪些项目？</textarea>
+            <label class="check dev-only"><input type="checkbox" id="useExternal" /> 使用已配置模型服务</label>
+            <button id="askButton">提交提问</button>
+          </div>
+          <div class="panel answer">
+            <h2 id="answerTitle">回答结果</h2>
+            <div id="answerMode"></div>
+            <ol id="answerList"></ol>
+            <p id="answerSource"></p>
+          </div>
+        </section>
+
+        <section id="admin" class="view">
+          <div class="panel">
+            <p class="eyebrow">管理员使用</p>
+            <h2>模型服务与系统能力</h2>
+            <p>此页用于部署和运维，不用于学生比赛操作。API Key只允许配置在服务端环境变量或部署平台密钥中。</p>
+          </div>
+
+          <div class="field-grid">
+            <section class="field-panel">
+              <h2>模型服务状态</h2>
+              <dl class="admin-status" id="adminProviderStatus"></dl>
+            </section>
+            <section class="field-panel">
+              <h2>模型配置</h2>
+              <div class="admin-form">
+                <label>Base URL<input id="adminBaseUrl" placeholder="https://api.openai.com/v1" /></label>
+                <label>模型名称<input id="adminModel" placeholder="gpt-4o-mini" /></label>
+                <label>API Key<input id="adminApiKey" type="password" placeholder="留空则保留原密钥" /></label>
+                <div class="toolbar-actions">
+                  <button id="saveModelConfig">保存模型配置</button>
+                  <button id="testModelConfig">测试模型服务</button>
+                  <button id="clearModelKey">清除密钥</button>
+                </div>
+              </div>
+              <p class="notice" id="modelConfigWarning"></p>
+            </section>
+          </div>
+
+          <div class="field-grid">
+            <section class="field-panel">
+              <h2>角色能力管理</h2>
+              <p>以JSON方式维护1号、2号、3号的服务能力。保存后选手服务页立即使用新配置。</p>
+              <textarea id="rolesJson" rows="18"></textarea>
+              <div class="toolbar-actions">
+                <button id="saveRoles">保存角色能力</button>
+                <button id="reloadRoles">重新加载</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="field-panel">
+            <h2>系统能力清单</h2>
+            <div id="capabilityList" class="capability-list"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

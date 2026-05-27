@@ -1,0 +1,17 @@
+{
+  "name": "jingzhouzhikong-mvp-agent-console",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Docker-deployable MVP console for the Jingzhou Zhikong process assistant agent.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test:smoke": "node scripts/smoke-test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

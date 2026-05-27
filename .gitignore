@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Runtime secrets and generated records
+.env
+*.local
+mvp-agent-app/runtime/
+
+# Generated QA and logs
+npm-debug.log*
+*.log
+*.tmp
+playwright-report/
+test-results/
+mvp-agent-app/tests/last-*.json
+
+# Original editable office source files are kept local unless explicitly redacted.
+*.docx
+~$*
+
+# OS/editor metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
